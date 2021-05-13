@@ -1,0 +1,31 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "CMake arm debug",
+            "type": "shell",
+            "command" : [
+                "mkdir cmake-build-debug;",
+                "cd cmake-build-debug;",
+                "cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1  -DTARGET=arm -G'MinGW Makefiles' -DCMAKE_BUILD_TYPE=debug .."
+            ],
+        }, 
+        {
+            "label": "build",
+            "type": "shell",
+            "command" : [
+                "cd cmake-build-debug;",
+                "make -j 4" 
+            ]
+        },
+        {
+            "label": "clean",
+            "type": "shell",
+            "command": [
+                "rmdir -r  cmake-*/"
+            ]
+        }
+    ]
+}

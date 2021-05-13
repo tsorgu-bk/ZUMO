@@ -1,0 +1,3 @@
+set(NAME syscalls)
+
+set(SYSCALLS_FILE "${CMAKE_CURRENT_SOURCE_DIR}/syscalls.c" PARENT_SCOPE)
