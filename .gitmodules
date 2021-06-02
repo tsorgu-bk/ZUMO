@@ -1,0 +1,3 @@
+[submodule "core/CommandParser"]
+	path = core/CommandParser
+	url = https://github.com/witek117/CommandParser

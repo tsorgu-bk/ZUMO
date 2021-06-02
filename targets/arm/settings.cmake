@@ -1,5 +1,5 @@
 set(CWARN                   "-Wall -Wextra -Werror") #-Wstrict-prototypes
-set(CXXWARN                 "-Wall -Wextra -Werror")
+set(CXXWARN                 "-Wall -Wextra -Werror -Wno-error=unused-variable")
 set(CTUNING                 "-fomit-frame-pointer -ffunction-sections -fdata-sections")
 
 ReadVariables(${CMAKE_CURRENT_LIST_DIR}/Makefile "CPU")             # get flag -DCPU = -mcpu=cortex-mXX
@@ -17,7 +17,7 @@ endif()
 set(CMCU                    "-mcpu=${CPU} -mthumb ${ARMFLOAT}")
 
 set(CMAKE_C_FLAGS           "${CMAKE_C_FLAGS} -std=gnu11 ${CWARN} ${CTUNING} ${CMCU} ${C_DEFS}")
-set(CMAKE_CXX_FLAGS         "${CMAKE_CXX_FLAGS} -std=gnu++17 -fno-exceptions -fno-rtti ${CXXWARN} ${CTUNING} ${CMCU} ${C_DEFS} -Wno-missing-field-initializers")
+set(CMAKE_CXX_FLAGS         "${CMAKE_CXX_FLAGS} -std=gnu++17 -fno-exceptions ${CXXWARN} ${CTUNING} ${CMCU} ${C_DEFS} -Wno-missing-field-initializers -fno-permissive")
 
 set(PLATFORM_LINKER_SCRIPT  ${CMAKE_CURRENT_LIST_DIR}/${LDSCRIPT})
 
