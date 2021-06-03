@@ -1,6 +1,7 @@
 //
 // Created by Andrzej on 10.05.2021.
 //
+
 #include "main.h"
 #include "GPIO_STM32F4x.h"
 //#include "UART_STM32F4x.h"
@@ -60,13 +61,13 @@ int Main(){
     bme280.set_enable(true);
     while(true){
         commandManager.run();
-        LED1.toggle();
-        HAL_Delay(100);
-        LED2.toggle();
+        //LED1.toggle();
+        //HAL_Delay(50);
+        //LED2.toggle();
         bme280.run_measurements();
-        auto length = sprintf(reinterpret_cast<char *>(data_buffer),"%" PRIu16 " %lu %f \n ", bme280.get_last_temperature_multiplied(), bme280.get_last_pressure(), bme280.read_humidity());
+        auto length = sprintf(reinterpret_cast<char *>(data_buffer),"%" PRIu16 ", %lu, %f \n", bme280.get_last_temperature_multiplied(), bme280.get_last_pressure(), bme280.read_humidity());
         commandManager.print(reinterpret_cast<const char *>(data_buffer));
-        HAL_Delay(1000);
+        HAL_Delay(100);
      }
     return 0;
 }
