@@ -23,7 +23,7 @@
 #define AK09916_YOUT_H   0x14
 #define AK09916_ZOUT_L   0x15
 #define AK09916_ZOUT_H   0x16
-#define AK09916_ST2      0x18  // Data overflow bit 3 and data read error status bit 2
+// KAPPA #define AK09916_ST2      0x18  // Data overflow bit 3 and data read error status bit 2
 #define AK09916_CNTL     0x30  // Power down (0000), single-measurement (0001), self-test (1000) and Fuse ROM (1111) modes on bits 3:0
 #define AK09916_CNTL2    0x31  // Normal (0), Reset (1)
 
@@ -35,7 +35,7 @@
 #define LP_CONFIG		   0x05 // Not found in MPU-9250
 #define PWR_MGMT_1         0x06 // Device defaults to the SLEEP mode
 #define PWR_MGMT_2         0x07
-#define INT_PIN_CFG        0x0F
+#define INT_PIN_CFG        0x18 // kappa
 #define INT_ENABLE         0x10
 #define INT_ENABLE_1	   0x11 // Not found in MPU-9250
 #define INT_ENABLE_2	   0x12 // Not found in MPU-9250
@@ -165,15 +165,12 @@
 #if ADO
 #define ICM20948_ADDRESS 0x69  // Device address when ADO = 1
 #else
-#define ICM20948_ADDRESS 0x68  // Device address when ADO = 0
+//#define ICM20948_ADDRESS 0x68  // Device address when ADO = 0
+#define ICM20948_ADDRESS 0b1101000
 #define AK09916_ADDRESS  0x0C   // Address of magnetometer
 #endif // AD0
 
 #define READ_FLAG 0x80
-#define NOT_SPI -1
-#define SPI_DATA_RATE 1000000 // 1MHz is the max speed of the ICM-20948
-//#define SPI_DATA_RATE 1000000 // 1MHz is the max speed of the ICM-20948
-#define SPI_MODE SPI_MODE3
 
 class ICM20948
 {

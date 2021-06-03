@@ -23,7 +23,7 @@ ICM20948 myIMU(i2c);
 extern UART_HandleTypeDef huart1;
 
 uint8_t data_buffer[40]= {0};
-
+uint8_t data_buffer2[40]= {0};
 //UART_STM32F4x usart;
 extern "C"
 //
@@ -35,38 +35,54 @@ extern "C"
 // test
 int Main(){
     // usart.init();
-    if(bme280.init()){
+    //myIMU.initICM20948(); 
+    /*if(bme280.init()){
         auto length = sprintf(reinterpret_cast<char *>(data_buffer), "bme280 OK \n");
         HAL_UART_Transmit(&huart1, data_buffer, length,10);
     } else{
         auto length = sprintf(reinterpret_cast<char *>(data_buffer), "bme280 NOT OK \n");
         HAL_UART_Transmit(&huart1, data_buffer, length,10);
-    }
-    bme280.set_enable(true);
+    }*/
+    //bme280.set_enable(true);
+
     // icm20948
     // Reset ICM20948
     myIMU.writeByte(ICM20948_ADDRESS, PWR_MGMT_1, READ_FLAG);
     HAL_Delay(100);
     myIMU.writeByte(ICM20948_ADDRESS, PWR_MGMT_1, 0x01);
-
+    HAL_Delay(100);
 
     // Read the WHO_AM_I register, this is a good test of communication
-    char c = myIMU.readByte(ICM20948_ADDRESS, WHO_AM_I_ICM20948);
+    //uint8_t c = myIMU.readByte(ICM20948_ADDRESS, WHO_AM_I_ICM20948);
     // Start by performing self test and reporting values
-    myIMU.ICM20948SelfTest(myIMU.selfTest);
-    myIMU.calibrateICM20948(myIMU.gyroBiasDef, myIMU.accelBiasDef);
+    //myIMU.ICM20948SelfTest(myIMU.selfTest);
+    //myIMU.calibrateICM20948(myIMU.gyroBiasDef, myIMU.accelBiasDef);
+    /*auto print = sprintf(reinterpret_cast<char *>(data_buffer), "x-axis self test: acc trim within : ");
+    HAL_UART_Transmit(&huart1, data_buffer, print,10);
+    print =sprintf(reinterpret_cast<char *>(data_buffer), "%f of factory value\n",(myIMU.selfTest[0]));//,1));
+    HAL_UART_Transmit(&huart1, data_buffer, print,10);
+    print = sprintf(reinterpret_cast<char *>(data_buffer), "y-axis self test: acc trim within : ");
+    HAL_UART_Transmit(&huart1, data_buffer, print,10);
+    print = sprintf(reinterpret_cast<char *>(data_buffer), "%f of factory value\n",(myIMU.selfTest[1]));//,1));
+    HAL_UART_Transmit(&huart1, data_buffer, print,10);
+    print =  sprintf(reinterpret_cast<char *>(data_buffer), "z-axis self test: acc trim within : ");
+    HAL_UART_Transmit(&huart1, data_buffer, print,10);
+    print = sprintf(reinterpret_cast<char *>(data_buffer), "%f of factory value\n",(myIMU.selfTest[2]));//,1));
+    HAL_UART_Transmit(&huart1, data_buffer, print,10);*/
     // end icm20948
     while(true){
         LED1.toggle();
         HAL_Delay(100);
         LED2.toggle();
         HAL_Delay(100);
-        bme280.run_measurements();
+        /*bme280.run_measurements();
         auto length = sprintf(reinterpret_cast<char *>(data_buffer), "Temperature: %.2f , Pressure: %lu \n ", bme280.get_last_temperature(), bme280.get_last_pressure());
-        HAL_UART_Transmit(&huart1, data_buffer, length,10);
-        length = sprintf(reinterpret_cast<char *>(data_buffer), "kappa: %c \n ", c);
-        HAL_UART_Transmit(&huart1, data_buffer, length,10);
+        HAL_UART_Transmit(&huart1, data_buffer, length,10);*/
 
+        uint8_t c = myIMU.readByte(ICM20948_ADDRESS, WHO_AM_I_ICM20948);
+        auto length = sprintf(reinterpret_cast<char *>(data_buffer), "kappa: %c \n ", c);
+        HAL_UART_Transmit(&huart1, data_buffer, length,10);
+        // for BHI 160 - nvm
         /*if (bhi160.status == BHY_OK)
             return true;
 

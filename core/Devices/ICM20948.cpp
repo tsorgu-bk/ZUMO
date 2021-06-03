@@ -14,7 +14,7 @@ ICM20948::ICM20948(I2C& i2c) : i2c(i2c/*=NOT_SPI*/) // Uses I2C communication by
   // https://www.ebay.co.uk/itm/323724746939
   // https://www.amazon.co.uk/DP-Eng-ICM-20948-Breakout-obsolete/dp/B07PDTKK3Y
   // I2C highly recommended.
-    _csPin = NOT_SPI;
+    _csPin = -1;//NOT_SPI;
     //Wire.begin(); KAPPA
 }
 
@@ -442,7 +442,7 @@ void ICM20948::calibrateICM20948(float *gyroBias, float *accelBias)
 void ICM20948::ICM20948SelfTest(float * destination)
 {
   uint8_t rawData[6] = {0, 0, 0, 0, 0, 0};
-  //uint8_t selfTest[6]; Kappa
+  //uint8_t selfTest[6]; //Kappa
   int32_t gAvg[3] = {0}, aAvg[3] = {0}, aSTAvg[3] = {0}, gSTAvg[3] = {0};
   float factoryTrim[6];
   uint8_t FS = 0;
@@ -693,9 +693,10 @@ uint8_t ICM20948::writeByteWire(uint8_t deviceAddress, uint8_t registerAddress,
   Wire.write(registerAddress);      // Put slave register address in Tx buffer
   Wire.write(data);                 // Put data in Tx buffer
   Wire.endTransmission();           // Send the Tx buffer*/
+  //i2c.write(deviceAddress,registerAddress);
   i2c.write(deviceAddress,registerAddress,data);
   // TODO: Fix this to return something meaningful
-  return '\0';
+  return 1;
 }
 
 // Read a byte from given register on device. Calls necessary SPI or I2C
@@ -718,10 +719,10 @@ uint8_t ICM20948::readByteWire(uint8_t deviceAddress, uint8_t registerAddress)
   //    Wire.endTransmission(false);
   // Read one byte from slave register address
   //    Wire.requestFrom(deviceAddress, (uint8_t) 1);
-  i2c.write(deviceAddress,registerAddress);
+  //i2c.write(deviceAddress,registerAddress); Nie wiem
   // Fill Rx buffer with result
   //    data = Wire.read();
-  data = i2c.read(deviceAddress,registerAddress);
+  data = i2c.read(deviceAddress, registerAddress);
   // Return data read from slave register
   return data;
 }
