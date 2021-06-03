@@ -1,10 +1,6 @@
-file(GLOB_RECURSE SOURCES
-	"*.c"
-	"*.cpp"
-)
 
 add_library(core
-	${SOURCES})
+			core.cpp)
 
 target_link_libraries(core
 		msftgsl

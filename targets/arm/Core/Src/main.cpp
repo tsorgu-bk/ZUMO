@@ -51,7 +51,9 @@ int Main(){
     HAL_Delay(100);
     myIMU.writeByte(ICM20948_ADDRESS, PWR_MGMT_1, 0x01);
     HAL_Delay(100);
-
+    auto some_buff = i2c.read((uint8_t )(((uint8_t)ICM20948_ADDRESS<<1) | (uint8_t )1), WHO_AM_I_ICM20948);
+    auto length2 = sprintf(reinterpret_cast<char *>(data_buffer), "bla bla : %02X \n ", some_buff);
+    HAL_UART_Transmit(&huart1, data_buffer, length2,10);
     // Read the WHO_AM_I register, this is a good test of communication
     //uint8_t c = myIMU.readByte(ICM20948_ADDRESS, WHO_AM_I_ICM20948);
     // Start by performing self test and reporting values
