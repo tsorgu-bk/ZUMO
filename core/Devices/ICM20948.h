@@ -14,7 +14,7 @@
 // https://www.akm.com/akm/en/file/datasheet/AK09916C.pdf
 
 //Magnetometer Registers
-#define AK09916_ADDRESS  0x0C 
+#define AK09916_ADDRESS  0b0001100   // Address of magnetometer
 #define WHO_AM_I_AK09916 0x01 // (AKA WIA2) should return 0x09
 #define AK09916_ST1      0x10  // data ready status bit 0
 #define AK09916_XOUT_L   0x11  // data
@@ -23,7 +23,7 @@
 #define AK09916_YOUT_H   0x14
 #define AK09916_ZOUT_L   0x15
 #define AK09916_ZOUT_H   0x16
-// KAPPA #define AK09916_ST2      0x18  // Data overflow bit 3 and data read error status bit 2
+#define AK09916_ST2      0x18  // Data overflow bit 3 and data read error status bit 2
 #define AK09916_CNTL     0x30  // Power down (0000), single-measurement (0001), self-test (1000) and Fuse ROM (1111) modes on bits 3:0
 #define AK09916_CNTL2    0x31  // Normal (0), Reset (1)
 
@@ -35,7 +35,7 @@
 #define LP_CONFIG		   0x05 // Not found in MPU-9250
 #define PWR_MGMT_1         0x06 // Device defaults to the SLEEP mode
 #define PWR_MGMT_2         0x07
-#define INT_PIN_CFG        0x18 // kappa
+#define INT_PIN_CFG        0x0F
 #define INT_ENABLE         0x10
 #define INT_ENABLE_1	   0x11 // Not found in MPU-9250
 #define INT_ENABLE_2	   0x12 // Not found in MPU-9250
@@ -167,7 +167,7 @@
 #else
 //#define ICM20948_ADDRESS 0x68  // Device address when ADO = 0
 #define ICM20948_ADDRESS 0b1101000
-#define AK09916_ADDRESS  0x0C   // Address of magnetometer
+//#define AK09916_ADDRESS  0b0001100   // Address of magnetometer
 #endif // AD0
 
 #define READ_FLAG 0x80
@@ -223,7 +223,7 @@ class ICM20948
     int16_t tempCount;   // Temperature raw count output
     uint32_t delt_t = 0; // Used to control display output rate
 
-    //uint32_t count = 0; KAPPA
+    uint32_t count = 0; //KAPPA
     uint32_t sumCount = 0; // used to control display output rate
     float deltat = 0.0f, sum = 0.0f;  // integration interval for both filter schemes
     uint32_t lastUpdate = 0, firstUpdate = 0; // used to calculate integration interval
@@ -238,13 +238,10 @@ class ICM20948
     // Factory mag calibration and mag bias
     float factoryMagCalibration[3] = {0, 0, 0}, factoryMagBias[3] = {0, 0, 0};
     // Bias corrections for gyro, accelerometer, and magnetometer
-    /*float gyroBias[3]  = {0, 0, 0}, KAPPA
+    float gyroBias[3]  = {0, 0, 0},
           accelBias[3] = {0, 0, 0},
           magBias[3]   = {0, 0, 0},
           magScale[3]  = {0, 0, 0};
-    float selfTest[6];*/
-    float gyroBiasDef[3]  = {0, 0, 0},
-    accelBiasDef[3] = {0, 0, 0};
     float selfTest[6];
     // Stores the 16-bit signe,d accelerometer sensor output
     int16_t accelCount[3];
@@ -267,7 +264,7 @@ class ICM20948
     uint8_t readByte(uint8_t, uint8_t);
     uint8_t readBytes(uint8_t, uint8_t, uint8_t, uint8_t *);
     // TODO: make SPI/Wire private
-    uint8_t readBytesWire(uint8_t, uint8_t, uint8_t, uint8_t *);
+    uint8_t readBytesWire(uint8_t, uint8_t, [[maybe_unused]] uint8_t, uint8_t *);
     bool isInI2cMode() { return _csPin == -1; }
 };  // class ICM20948
 

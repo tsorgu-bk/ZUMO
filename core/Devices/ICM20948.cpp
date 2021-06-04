@@ -138,7 +138,7 @@ void ICM20948::initAK09916()
 	
 	// Write code to initialise magnetometer
 	// Bypass I2C master interface and turn on magnetometer
-  //writeByte(ICM20948_ADDRESS, INT_PIN_CFG, 0x02); Already set in initICM20948
+ // writeByte(ICM20948_ADDRESS, INT_PIN_CFG, 0x02);// Already set in initICM20948
 
   // Configure the magnetometer for continuous read and highest resolution.
   // Enable continuous mode data acquisition Mmode (bits [3:0]),
@@ -219,7 +219,7 @@ void ICM20948::initICM20948()
 // Function which accumulates gyro and accelerometer data after device
 // initialization. It calculates the average of the at-rest readings and then
 // loads the resulting offsets into accelerometer and gyro bias registers.
-void ICM20948::calibrateICM20948(float *gyroBias, float *accelBias)
+void ICM20948::calibrateICM20948(float *gyroBiasCal, float *accelBiasCal)
 {
   uint8_t data[12]; // data array to hold accelerometer and gyro x, y, z, data
   uint16_t ii, packet_count, fifo_count;
@@ -354,9 +354,15 @@ void ICM20948::calibrateICM20948(float *gyroBias, float *accelBias)
   writeByte(ICM20948_ADDRESS, ZG_OFFSET_L, data[5]);
 
   // Output scaled gyro biases for display in the main program
-  gyroBias[0] = (float) gyro_bias[0]/(float) gyrosensitivity;
-  gyroBias[1] = (float) gyro_bias[1]/(float) gyrosensitivity;
-  gyroBias[2] = (float) gyro_bias[2]/(float) gyrosensitivity;
+  gyroBiasCal[0] = (float) gyro_bias[0]/(float) gyrosensitivity;
+  gyroBiasCal[1] = (float) gyro_bias[1]/(float) gyrosensitivity;
+  gyroBiasCal[2] = (float) gyro_bias[2]/(float) gyrosensitivity;
+
+  //KAPPA
+    gyroBias[0] = gyroBiasCal[0];
+    gyroBias[1] = gyroBiasCal[1];
+    gyroBias[2] = gyroBiasCal[2];
+  //KAPPA END
 
   // Construct the accelerometer biases for push to the hardware accelerometer
   // bias registers. These registers contain factory trim values which must be
@@ -427,10 +433,18 @@ void ICM20948::calibrateICM20948(float *gyroBias, float *accelBias)
   writeByte(ICM20948_ADDRESS, ZA_OFFSET_H, data[4]);
   writeByte(ICM20948_ADDRESS, ZA_OFFSET_L, data[5]);
 
+  //KAPPA
   // Output scaled accelerometer biases for display in the main program
-  accelBias[0] = (float)accel_bias[0]/(float)accelsensitivity;
-  accelBias[1] = (float)accel_bias[1]/(float)accelsensitivity;
-  accelBias[2] = (float)accel_bias[2]/(float)accelsensitivity;
+  accelBiasCal[0] = (float)accel_bias[0]/(float)accelsensitivity;
+  accelBiasCal[1] = (float)accel_bias[1]/(float)accelsensitivity;
+  accelBiasCal[2] = (float)accel_bias[2]/(float)accelsensitivity;
+
+  accelBias[0] = accelBiasCal[0];
+  accelBias[1] = accelBiasCal[1];
+  accelBias[2] = accelBiasCal[2];
+
+  //KAPPA END
+
   // Switch to user bank 0
   writeByte(ICM20948_ADDRESS, REG_BANK_SEL, 0x00);
 }
@@ -694,9 +708,9 @@ uint8_t ICM20948::writeByteWire(uint8_t deviceAddress, uint8_t registerAddress,
   Wire.write(data);                 // Put data in Tx buffer
   Wire.endTransmission();           // Send the Tx buffer*/
   //i2c.write(deviceAddress,registerAddress);
-  i2c.write(deviceAddress,registerAddress,data);
+  i2c.write((uint8_t )(((uint8_t)deviceAddress<< 0) | (uint8_t )0), registerAddress,data);
   // TODO: Fix this to return something meaningful
-  return 1;
+  return '\0';
 }
 
 // Read a byte from given register on device. Calls necessary SPI or I2C
@@ -723,6 +737,7 @@ uint8_t ICM20948::readByteWire(uint8_t deviceAddress, uint8_t registerAddress)
   // Fill Rx buffer with result
   //    data = Wire.read();
   data = i2c.read(deviceAddress, registerAddress);
+  data = i2c.read((uint8_t )(((uint8_t)deviceAddress<<1) | (uint8_t )1), registerAddress);
   // Return data read from slave register
   return data;
 }
@@ -730,7 +745,7 @@ uint8_t ICM20948::readByteWire(uint8_t deviceAddress, uint8_t registerAddress)
 
 // Read 1 or more bytes from given register and device using I2C
 uint8_t ICM20948::readBytesWire(uint8_t deviceAddress, uint8_t registerAddress,
-                        uint8_t count, uint8_t * dest)
+                                uint8_t countTMP, uint8_t * dest)
 {
   // Initialize the Tx buffer
   //    Wire.beginTransmission(deviceAddress);
@@ -738,7 +753,7 @@ uint8_t ICM20948::readBytesWire(uint8_t deviceAddress, uint8_t registerAddress,
   //    Wire.write(registerAddress);
   // Send the Tx buffer, but send a restart to keep connection alive
   //    Wire.endTransmission(false);
-  i2c.write(deviceAddress,registerAddress);
+  //i2c.write((uint8_t )(((uint8_t)deviceAddress<<0) | (uint8_t )0), registerAddress); kappa moje
   uint8_t i = 0;
   // Read bytes from slave register address
   /*Wire.requestFrom(deviceAddress, count);
@@ -747,42 +762,12 @@ uint8_t ICM20948::readBytesWire(uint8_t deviceAddress, uint8_t registerAddress,
     // Put read results in the Rx buffer
     dest[i++] = Wire.read();
   }*/
-
-  //uint8_t kappa;
-  //i2c.read(deviceAddress, registerAddress, 32, &kappa);
-  //dest[i++] = i2c.read(deviceAddress,registerAddress);
-  dest = i2c.read(deviceAddress,registerAddress, count);
-  i = std::to_string(reinterpret_cast<int>(dest)).length();
+  for (i = 0; i < countTMP; i++) {
+      dest[i] = i2c.read((uint8_t) (((uint8_t) deviceAddress << 1) | (uint8_t) 1), registerAddress);
+  }
 
   return i; // Return number of bytes written
 }
-
-  /*
-#ifdef SERIAL_DEBUG
-  Serial.print("ICM20948::writeByteSPI slave returned: 0x");
-  Serial.println(returnVal, HEX);
-#endif
-  return returnVal;
-  */
-
-  /*
-  // Set slave address of AK09916 and set AK09916 for read
-  writeByteSPI(I2C_SLV0_ADDR, AK09916_ADDRESS | READ_FLAG);
-
-Serial.print("\nBHW::I2C_SLV0_ADDR set to: 0x");
-Serial.println(readByte(ICM20948_ADDRESS, I2C_SLV0_ADDR), HEX);
-
-  // Set address to start read from
-  writeByteSPI(I2C_SLV0_REG, registerAddress);
-  // Read bytes from magnetometer
-  //
-Serial.print("\nBHW::I2C_SLV0_CTRL gets 0x");
-Serial.println(READ_FLAG | count, HEX);
-
-  // Read count bytes from registerAddress via I2C_SLV0
-  Serial.print("BHW::readBytesSPI: return value test: ");
-  Serial.println(writeByteSPI(I2C_SLV0_CTRL, READ_FLAG | count));
-  */
 uint8_t ICM20948::readBytes(uint8_t deviceAddress, uint8_t registerAddress, uint8_t countKAPPA, uint8_t * dest)
 {
     return readBytesWire(deviceAddress, registerAddress, countKAPPA, dest);
