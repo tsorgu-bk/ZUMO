@@ -14,8 +14,6 @@ ICM20948::ICM20948(I2C& i2c) : i2c(i2c/*=NOT_SPI*/) // Uses I2C communication by
   // https://www.ebay.co.uk/itm/323724746939
   // https://www.amazon.co.uk/DP-Eng-ICM-20948-Breakout-obsolete/dp/B07PDTKK3Y
   // I2C highly recommended.
-    _csPin = -1;//NOT_SPI;
-    //Wire.begin(); KAPPA
 }
 
 void ICM20948::getMres()
@@ -358,19 +356,10 @@ void ICM20948::calibrateICM20948(float *gyroBiasCal, float *accelBiasCal)
   gyroBiasCal[1] = (float) gyro_bias[1]/(float) gyrosensitivity;
   gyroBiasCal[2] = (float) gyro_bias[2]/(float) gyrosensitivity;
 
-  //KAPPA
     gyroBias[0] = gyroBiasCal[0];
     gyroBias[1] = gyroBiasCal[1];
     gyroBias[2] = gyroBiasCal[2];
-  //KAPPA END
 
-  // Construct the accelerometer biases for push to the hardware accelerometer
-  // bias registers. These registers contain factory trim values which must be
-  // added to the calculated accelerometer biases; on boot up these registers
-  // will hold non-zero values. In addition, bit 0 of the lower byte must be
-  // preserved since it is used for temperature compensation calculations.
-  // Accelerometer bias registers expect bias input as 2048 LSB per g, so that
-  // the accelerometer biases calculated above must be divided by 8.
   
   // Switch to user bank 1
   writeByte(ICM20948_ADDRESS, REG_BANK_SEL, 0x10);
@@ -399,27 +388,21 @@ void ICM20948::calibrateICM20948(float *gyroBiasCal, float *accelBiasCal)
     }
   }
 
-  // Construct total accelerometer bias, including calculated average
-  // accelerometer bias from above
-  // Subtract calculated averaged accelerometer bias scaled to 2048 LSB/g
-  // (16 g full scale)
+  // Construct total accelerometer bias,
   accel_bias_reg[0] -= (accel_bias[0]/8);
   accel_bias_reg[1] -= (accel_bias[1]/8);
   accel_bias_reg[2] -= (accel_bias[2]/8);
 
   data[0] = (accel_bias_reg[0] >> 8) & 0xFF;
   data[1] = (accel_bias_reg[0])      & 0xFF;
-  // preserve temperature compensation bit when writing back to accelerometer
   // bias registers
   data[1] = data[1] | mask_bit[0];
   data[2] = (accel_bias_reg[1] >> 8) & 0xFF;
   data[3] = (accel_bias_reg[1])      & 0xFF;
-  // Preserve temperature compensation bit when writing back to accelerometer
   // bias registers
   data[3] = data[3] | mask_bit[1];
   data[4] = (accel_bias_reg[2] >> 8) & 0xFF;
   data[5] = (accel_bias_reg[2])      & 0xFF;
-  // Preserve temperature compensation bit when writing back to accelerometer
   // bias registers
   data[5] = data[5] | mask_bit[2];
 
@@ -433,7 +416,7 @@ void ICM20948::calibrateICM20948(float *gyroBiasCal, float *accelBiasCal)
   writeByte(ICM20948_ADDRESS, ZA_OFFSET_H, data[4]);
   writeByte(ICM20948_ADDRESS, ZA_OFFSET_L, data[5]);
 
-  //KAPPA
+
   // Output scaled accelerometer biases for display in the main program
   accelBiasCal[0] = (float)accel_bias[0]/(float)accelsensitivity;
   accelBiasCal[1] = (float)accel_bias[1]/(float)accelsensitivity;
@@ -443,7 +426,6 @@ void ICM20948::calibrateICM20948(float *gyroBiasCal, float *accelBiasCal)
   accelBias[1] = accelBiasCal[1];
   accelBias[2] = accelBiasCal[2];
 
-  //KAPPA END
 
   // Switch to user bank 0
   writeByte(ICM20948_ADDRESS, REG_BANK_SEL, 0x00);
@@ -456,7 +438,7 @@ void ICM20948::calibrateICM20948(float *gyroBiasCal, float *accelBiasCal)
 void ICM20948::ICM20948SelfTest(float * destination)
 {
   uint8_t rawData[6] = {0, 0, 0, 0, 0, 0};
-  //uint8_t selfTest[6]; //Kappa
+  //uint8_t selfTest[6];
   int32_t gAvg[3] = {0}, aAvg[3] = {0}, aSTAvg[3] = {0}, gSTAvg[3] = {0};
   float factoryTrim[6];
   uint8_t FS = 0;
@@ -482,8 +464,6 @@ void ICM20948::ICM20948SelfTest(float * destination)
   // Get average current values of gyro and acclerometer
   for (int ii = 0; ii < 200; ii++)
   {
-//Serial.print("BHW::ii = "); KAPPA
-//Serial.println(ii);
     // Read the six raw data registers into data array
     readBytes(ICM20948_ADDRESS, ACCEL_XOUT_H, 6, &rawData[0]);
     // Turn the MSB and LSB into a signed 16-bit value
@@ -592,8 +572,8 @@ void ICM20948::ICM20948SelfTest(float * destination)
   for (int i = 0; i < 3; i++)
   {
     // Report percent differences
-    destination[i] = 100.0 * ((float)(aSTAvg[i] - aAvg[i])) / factoryTrim[i]
-      - 100.;
+    destination[i] = 100.0 * (((float)(aSTAvg[i] - aAvg[i])) / factoryTrim[i]
+      - 100.);
     // Report percent differences
     destination[i+3] = 100.0*((float)(gSTAvg[i] - gAvg[i]))/factoryTrim[i+3]
       - 100.;
@@ -614,7 +594,7 @@ void ICM20948::magCalICM20948(float * bias_dest, float * scale_dest)
   // Make sure resolution has been calculated
   getMres();
 
-  //Serial.println(F("Mag Calibration: Wave device in a figure 8 until done!")); kappa
+  //Serial.println(F("Mag Calibration: Wave device in a figure 8 until done!"));
   //Serial.println(
       //F("  4 seconds to get ready followed by 15 seconds of sampling)"));
   //delay(4000);
@@ -689,7 +669,7 @@ void ICM20948::magCalICM20948(float * bias_dest, float * scale_dest)
   scale_dest[1] = avg_rad / ((float)mag_scale[1]);
   scale_dest[2] = avg_rad / ((float)mag_scale[2]);
 
-  //Serial.println(F("Mag Calibration done!")); kappa
+  //Serial.println(F("Mag Calibration done!"));
 }
 
 // Wire.h read and write protocols
@@ -703,11 +683,6 @@ return writeByteWire(deviceAddress,registerAddress, data);
 uint8_t ICM20948::writeByteWire(uint8_t deviceAddress, uint8_t registerAddress,
                             uint8_t data)
 {
-  /*Wire.beginTransmission(deviceAddress);  // Initialize the Tx buffer
-  Wire.write(registerAddress);      // Put slave register address in Tx buffer
-  Wire.write(data);                 // Put data in Tx buffer
-  Wire.endTransmission();           // Send the Tx buffer*/
-  //i2c.write(deviceAddress,registerAddress);
   i2c.write((uint8_t )(((uint8_t)deviceAddress<< 0) | (uint8_t )0), registerAddress,data);
   // TODO: Fix this to return something meaningful
   return '\0';
@@ -725,20 +700,8 @@ uint8_t ICM20948::readByteWire(uint8_t deviceAddress, uint8_t registerAddress)
 {
   uint8_t data; // `data` will store the register data
 
-  // Initialize the Tx buffer
-  //    Wire.beginTransmission(deviceAddress);
-  // Put slave register address in Tx buffer
-  //    Wire.write(registerAddress);
-  // Send the Tx buffer, but send a restart to keep connection alive
-  //    Wire.endTransmission(false);
-  // Read one byte from slave register address
-  //    Wire.requestFrom(deviceAddress, (uint8_t) 1);
-  //i2c.write(deviceAddress,registerAddress); Nie wiem
-  // Fill Rx buffer with result
-  //    data = Wire.read();
-  data = i2c.read(deviceAddress, registerAddress);
   data = i2c.read((uint8_t )(((uint8_t)deviceAddress<<1) | (uint8_t )1), registerAddress);
-  // Return data read from slave register
+
   return data;
 }
 
@@ -747,21 +710,7 @@ uint8_t ICM20948::readByteWire(uint8_t deviceAddress, uint8_t registerAddress)
 uint8_t ICM20948::readBytesWire(uint8_t deviceAddress, uint8_t registerAddress,
                                 uint8_t countTMP, uint8_t * dest)
 {
-  // Initialize the Tx buffer
-  //    Wire.beginTransmission(deviceAddress);
-  // Put slave register address in Tx buffer
-  //    Wire.write(registerAddress);
-  // Send the Tx buffer, but send a restart to keep connection alive
-  //    Wire.endTransmission(false);
-  //i2c.write((uint8_t )(((uint8_t)deviceAddress<<0) | (uint8_t )0), registerAddress); kappa moje
   uint8_t i = 0;
-  // Read bytes from slave register address
-  /*Wire.requestFrom(deviceAddress, count);
-  while (Wire.available())
-  {
-    // Put read results in the Rx buffer
-    dest[i++] = Wire.read();
-  }*/
   for (i = 0; i < countTMP; i++) {
       dest[i] = i2c.read((uint8_t) (((uint8_t) deviceAddress << 1) | (uint8_t) 1), registerAddress);
   }

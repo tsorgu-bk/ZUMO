@@ -48,13 +48,6 @@
 #ifndef BHY_DEFS_H_
 #define BHY_DEFS_H_
 
-#if ARDUINO >= 100
- #include "Arduino.h"
- #include "stdio.h"
-#else
- //#include "WProgram.h" KAPPA
-#endif
-
 #include <I2C.h>
 
 #include <stdlib.h>
