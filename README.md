@@ -7,7 +7,6 @@
 - https://github.com/drcpattison/ICM-20948
 - https://github.com/BoschSensortec/BoschSensorHub
 
-
 ## Requirements in PATH
 - [CMake](https://cmake.org/)
 - [program make](https://www.gnu.org/software/make/) or [Ninja](https://ninja-build.org/)
