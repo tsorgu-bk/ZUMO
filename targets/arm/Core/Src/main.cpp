@@ -67,7 +67,7 @@ int Main(){
         bme280.run_measurements();
         auto length = sprintf(reinterpret_cast<char *>(data_buffer),"%" PRIu16 "|%lu|%f \n", bme280.get_last_temperature_multiplied(), bme280.get_last_pressure(), bme280.read_humidity());
         commandManager.print(reinterpret_cast<const char *>(data_buffer));
-        HAL_Delay(500);
+        HAL_Delay(50);
      }
     return 0;
 }
