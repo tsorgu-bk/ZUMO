@@ -1,12 +1,8 @@
-/*
- Note: The ICM-20948 is an I2C sensor and uses the Arduino Wire library.
- */
 #ifndef _ICM20948_H_
 #define _ICM20948_H_
 #include <cstdint>
 #include <I2C.h>
 
-#define SERIAL_DEBUG false
 
 // See also ICM-20948 Datasheet, Register Map and Descriptions, Revision 1.3,
 // https://www.invensense.com/wp-content/uploads/2016/06/DS-000189-ICM-20948-v1.3.pdf
@@ -159,16 +155,10 @@
 #define I2C_SLV4_DI        		0x17
 
 
-// Using the ICM-20948 breakout board, ADO is set to 1
 // Seven-bit device address is 1000100 for ADO = 0 and 1000101 for ADO = 1
-#define ADO 0 //kappa
-#if ADO
-#define ICM20948_ADDRESS 0x69  // Device address when ADO = 1
-#else
-//#define ICM20948_ADDRESS 0x68  // Device address when ADO = 0
-#define ICM20948_ADDRESS 0b1101000
+#define ICM20948_ADDRESS 0b1101000 // Device address when ADO = 0
 //#define AK09916_ADDRESS  0b0001100   // Address of magnetometer
-#endif // AD0
+
 
 #define READ_FLAG 0x80
 
@@ -202,7 +192,6 @@ class ICM20948
       M_100HZ = 0x06 // 100 Hz continuous magnetometer
     };
 
-    // TODO: Add setter methods for this hard coded stuff
     // Specify sensor full scale
     uint8_t Gscale = GFS_250DPS;
     uint8_t Ascale = AFS_2G;
@@ -210,12 +199,9 @@ class ICM20948
     // 2 for 8 Hz, 6 for 100 Hz continuous magnetometer data read
     uint8_t Mmode = M_100HZ;
 
-    // SPI chip select pin
-    int8_t _csPin;
 
     uint8_t writeByteWire(uint8_t, uint8_t, uint8_t);
     uint8_t readByteWire(uint8_t address, uint8_t subAddress);
-// TODO: Remove this next line
 
   public:
     float pitch, yaw, roll;
@@ -223,7 +209,7 @@ class ICM20948
     int16_t tempCount;   // Temperature raw count output
     uint32_t delt_t = 0; // Used to control display output rate
 
-    uint32_t count = 0; //KAPPA
+    uint32_t count = 0; //
     uint32_t sumCount = 0; // used to control display output rate
     float deltat = 0.0f, sum = 0.0f;  // integration interval for both filter schemes
     uint32_t lastUpdate = 0, firstUpdate = 0; // used to calculate integration interval
@@ -263,9 +249,7 @@ class ICM20948
     uint8_t writeByte(uint8_t, uint8_t, uint8_t);
     uint8_t readByte(uint8_t, uint8_t);
     uint8_t readBytes(uint8_t, uint8_t, uint8_t, uint8_t *);
-    // TODO: make SPI/Wire private
-    uint8_t readBytesWire(uint8_t, uint8_t, [[maybe_unused]] uint8_t, uint8_t *);
-    bool isInI2cMode() { return _csPin == -1; }
+    uint8_t readBytesWire(uint8_t, uint8_t, uint8_t, uint8_t *);
 };  // class ICM20948
 
 #endif // _ICM20948_H_

@@ -56,8 +56,6 @@ BHYSensor::BHYSensor(I2C& i2c) : i2c(i2c) {
     for (uint8_t i = 0; i < SENSOR_CALLBACK_LIST_NUM + 1; i++)
         callbacks[i].invalid = NULL;
     deviceId = BHY_I2C_ADDR;
-    //i2c = NULL;
-    //I2C& i2c = i2c;
     productId = 0;
     bytesWaiting = 0;
     bufferEnd = 0;
@@ -75,15 +73,13 @@ BHYSensor::BHYSensor(I2C& i2c) : i2c(i2c) {
 }
 
 
-int8_t BHYSensor::begin(uint8_t i2cAddress)//,TwoWire &wire)
+int8_t BHYSensor::begin(uint8_t i2cAddress)
 {
     deviceId = i2cAddress;
-    //i2c = &wire;
     const uint8_t nTries = 5;
     uint8_t tries = nTries;
     uint8_t data;
 
-    //i2c.begin(); KAPPA
 
     while (tries > 0)
     {
@@ -92,22 +88,6 @@ int8_t BHYSensor::begin(uint8_t i2cAddress)//,TwoWire &wire)
 
         if (data == BHY_PRODUCT_ID)
             break;
-#ifdef DEBUG_MODE
-        if (debugOut && (debugLevel >= BHY_INFORMATIVE))
-        {
-            debugOut->print("\tProduct ID read #");
-            debugOut->print(nTries - tries);
-            debugOut->print(": ");
-            if (data < 16)
-                debugOut->print("0");
-            debugOut->print(data, HEX);
-            debugOut->print(" [read return code ");
-            debugOut->print(status);
-            debugOut->println("]");
-        }
-#endif
-
-        //delay(BHY_ACK_DELAY); KAPPA
     }
 
     if (data != BHY_PRODUCT_ID)
@@ -124,26 +104,12 @@ int8_t BHYSensor::begin(uint8_t i2cAddress)//,TwoWire &wire)
     if (status < 0)
         return status;
 
-#ifdef DEBUG_MODE
-    if (debugOut && (debugLevel >= BHY_DEBUG) && methodTrace)
-    {
-        debugOut->println("/begin()");
-    }
-#endif
 
     return status;
 }
 
 int8_t BHYSensor::loadFirmware(const uint8_t *bhyFW)
 {
-#ifdef DEBUG_MODE
-    if (debugOut && (debugLevel >= BHY_DEBUG) && methodTrace)
-    {
-        debugOut->print("loadFirmware(0x");
-        debugOut->print((long)bhyFW, HEX);
-        debugOut->println(")");
-    }
-#endif
 
     uint8_t fwHeader[BHY_SIGNATURE_MEM_LEN] = { 0, };
 
@@ -164,22 +130,6 @@ int8_t BHYSensor::loadFirmware(const uint8_t *bhyFW)
 
     uint16_t romVersion = getRomVersion();
 
-#ifdef DEBUG_MODE
-    if (debugOut && (debugLevel >= BHY_INFORMATIVE))
-    {
-        debugOut->print("Firmware Signature Flag: 0x");
-        debugOut->print(signatureFlag, HEX);
-        debugOut->print(", Expected ROM Version: 0x");
-        debugOut->println(romVerExp, HEX);
-
-        debugOut->print("Read ROM Version: 0x");
-        debugOut->print(romVersion, HEX);
-        debugOut->print(" [read return code ");
-        debugOut->print(status);
-        debugOut->println("]");
-    }
-#endif
-
     if (!(romVerExp == BHY_ROM_VER_DI01 && romVersion == BHY_ROM_VERSION_DI01) &&
         !(romVerExp == BHY_ROM_VER_DI03 && romVersion == BHY_ROM_VERSION_DI03))
     {
@@ -190,13 +140,6 @@ int8_t BHYSensor::loadFirmware(const uint8_t *bhyFW)
     uint32_t fwLength = 16 + bhyFW[12] + ((uint32_t)bhyFW[13] << 8);
     uint32_t dataToProcess = fwLength - (BHY_SIGNATURE_MEM_LEN - 1);
 
-#ifdef DEBUG_MODE
-    if (debugOut && (debugLevel >= BHY_INFORMATIVE))
-    {
-        debugOut->print("Binary to load size: ");
-        debugOut->println(dataToProcess);
-    }
-#endif
 
     // Request reset
     status = write(BHY_REG_RESET_REQUEST_ADDR, BHY_ENABLE);
@@ -266,42 +209,16 @@ int8_t BHYSensor::loadFirmware(const uint8_t *bhyFW)
 
     uint32_t crcFromDevice = getBhyCrc();
 
-/*#ifdef DEBUG_MODE
-    if (debugOut && (debugLevel >= BHY_INFORMATIVE))
-    {
-        debugOut->print("Expected CRC: 0x");
-        debugOut->println(crcFromFw, HEX);
-        debugOut->print("Device CRC: 0x");
-        debugOut->println(crcFromDevice, HEX);
-    }
-#endif*/
 
     if (status < 0)
         return status;
 
     if (crcFromFw != crcFromDevice)
     {
-/*#ifdef DEBUG_MODE
-        if (debugOut && (debugLevel >= BHY_ERROR) && (debugLevel < BHY_INFORMATIVE))
-        {
-            debugOut->print("Expected CRC: 0x");
-            debugOut->println(crcFromFw, HEX);
-            debugOut->print("Host CRC: 0x");
-            debugOut->println(crcFromDevice, HEX);
-        }
-#endif*/
-
         return status = BHY_E_CRC_MISMATCH;
     }
 
     status = write(BHY_REG_CHIP_CONTROL_ADDR, BHY_CHIP_CTRL_CPU_RUN_BIT); //
-
-/*#ifdef DEBUG_MODE
-    if (debugOut && (debugLevel >= BHY_DEBUG) && methodTrace)
-    {
-        debugOut->print("/loadFirmware()");
-    }
-#endif*/
 
     return status;
 }
@@ -371,7 +288,7 @@ int8_t BHYSensor::setChipControl(uint8_t value)
 
 int8_t BHYSensor::getHostStatus(bhyHostStatus *hostStatus)
 {
-    //uint8_t data = 0; KAPPA
+    //uint8_t data = 0;
 
     status = read(BHY_REG_HOST_STATUS_ADDR, &hostStatus->value);
 
@@ -471,7 +388,7 @@ int8_t BHYSensor::enableMetaEvent(bhyMetaEventType type, bool wakeup, bool enabl
 {
     uint8_t effectiveType = type;
 
-    //if (type > 32) kappa
+    //if (type > 32)
     if (effectiveType > 32)
     {
         status = BHY_E_OUT_OF_RANGE;
@@ -501,7 +418,7 @@ int8_t BHYSensor::enableMetaEventInterrupt(bhyMetaEventType type, bool wakeup, b
 {
     uint8_t effectiveType = type;
 
-    //if (type > 32) kappa
+    //if (type > 32)
     if (effectiveType > 32)
     {
         status = BHY_E_OUT_OF_RANGE;
@@ -527,113 +444,23 @@ int8_t BHYSensor::enableMetaEventInterrupt(bhyMetaEventType type, bool wakeup, b
     return status;
 }
 
-#ifdef DEBUG_MODE
-void BHYSensor::setDebug(Print* debug, bhyDebugLevel level)
-{
-    debugOut = debug;
-    debugLevel = level;
-}
-
-void BHYSensor::setCommDump(bool enable)
-{
-    commDump = enable;
-}
-
-void BHYSensor::setMethodTrace(bool enable)
-{
-    methodTrace = enable;
-}
-
-void BHYSensor::setEventDump(bool enable)
-{
-    eventDump = enable;
-}
-
-void BHYSensor::dumpBuffer(uint8_t length)
-{
-    if (!debugOut)
-        return;
-
-    for (uint8_t i = 0; i < length; ++i)
-    {
-        debugOut->print(" ");
-        if (buffer[bufferStart + i] < 16)
-            debugOut->print("0");
-        debugOut->print(buffer[bufferStart + i], HEX);
-        if (i % 8 == 7 || i == length - 1)
-            debugOut->println("");
-    }
-}
-
-void BHYSensor::dumpBuffer(uint8_t prefix, uint8_t length)
-{
-    if (!debugOut)
-        return;
-
-    debugOut->print(" ");
-    if (prefix < 16)
-        debugOut->print("0");
-    debugOut->print(prefix, HEX);
-
-    for (uint8_t i = 1; i <= length; ++i)
-    {
-        debugOut->print(" ");
-        if (buffer[bufferStart + i - 1] < 16)
-            debugOut->print("0");
-        debugOut->print(buffer[bufferStart + i - 1], HEX);
-        if (i % 8 == 7 || i == length)
-            debugOut->println("");
-    }
-}
-#endif
 
 int8_t BHYSensor::updateBuffer()
 {
-#ifdef DEBUG_MODE
-    if (debugOut && (debugLevel >= BHY_DEBUG) && methodTrace)
-    {
-        debugOut->println("updateBuffer()");
-    }
-
-#endif
     if (bytesWaiting == 0)
     {
         checkForData();
         if (bytesWaiting == 0)
         {
-#ifdef DEBUG_MODE
-            if (debugOut && (debugLevel >= BHY_DEBUG))
-            {
-                debugOut->println("\tNothing to update.");
-                if (methodTrace)
-                    debugOut->println("/updateBuffer()");
-            }
-#endif
-
             return status;
         }
     }
 
     int16_t bufferCapacity = BHY_FIFO_BUFFER_SIZE - bufferUsed; // Bad if BHY_FIFO_BUFFER_SIZE != 256
 
-#ifdef DEBUG_MODE
-    if (debugOut && (debugLevel >= BHY_INFORMATIVE))
-    {
-        debugOut->print("\tCurrent available buffer capacity: ");
-        debugOut->print(bufferCapacity);
-    }
-#endif
 
     if (bufferCapacity == 0)
     {
-#ifdef DEBUG_MODE
-        if (debugOut && (debugLevel >= BHY_DEBUG))
-        {
-            debugOut->println("\tNo space in buffer.");
-            if (methodTrace)
-                debugOut->println("/updateBuffer()");
-        }
-#endif
 
         return status;
     }
@@ -652,25 +479,9 @@ int8_t BHYSensor::updateBuffer()
 
     if (toRead == 0)
     {
-#ifdef DEBUG_MODE
-        if (debugOut && (debugLevel >= BHY_DEBUG))
-        {
-            debugOut->println("\tNo read possible.");
-            if (methodTrace)
-                debugOut->println("/updateBuffer()");
-        }
-#endif
 
         return status;
     }
-
-#ifdef DEBUG_MODE
-    if (debugOut && (debugLevel >= BHY_INFORMATIVE))
-    {
-        debugOut->print("\tNumber of bytes to read: ");
-        debugOut->println(toRead);
-    }
-#endif
 
     uint8_t thisRead = 0;
     uint8_t reg = BHY_REG_BUFFER_ZERO_ADDR;
@@ -683,27 +494,12 @@ int8_t BHYSensor::updateBuffer()
         else
             bufferSpace = bufferStart - bufferEnd; // Bad if BHY_FIFO_BUFFER_SIZE != 256
 
-#ifdef DEBUG_MODE
-        if (debugOut && (debugLevel >= BHY_INFORMATIVE))
-        {
-            debugOut->print("\tBuffer space available for this read: ");
-            debugOut->println(bufferSpace);
-        }
-#endif
 
         // Ensure we don't overflow the pseudo-circular buffer
         thisRead = (ARDUINO_I2C_BUFFER_SIZE < bufferSpace) ? ARDUINO_I2C_BUFFER_SIZE : bufferSpace; // minimum
 
         if (toRead < thisRead)
             thisRead = toRead;
-
-#ifdef DEBUG_MODE
-        if (debugOut && (debugLevel >= BHY_INFORMATIVE))
-        {
-            debugOut->print("\tNumber of bytes in this transaction: ");
-            debugOut->println(thisRead);
-        }
-#endif
 
         read(reg, &buffer[bufferEnd], thisRead);
 
@@ -714,32 +510,11 @@ int8_t BHYSensor::updateBuffer()
 
         toRead -= thisRead;
         bytesWaiting -= thisRead;
-
-#ifdef DEBUG_MODE
-        if (debugOut && (debugLevel >= BHY_INTERNAL))
-        { //INTERNAL
-            debugOut->print("\tBuffer End: ");
-            debugOut->print(bufferEnd);
-            debugOut->print(", Buffer Used: ");
-            debugOut->print(bufferUsed);
-            debugOut->print(thisRead);
-            debugOut->print(", thisRead: ");
-            debugOut->print(thisRead);
-            debugOut->print(", Next register: ");
-            debugOut->println(reg);
-        }
-#endif
     }
 
     if (bufferStart == bufferEnd && bufferUsed == 0)
         bufferStart = bufferEnd = 0; // !!!
 
-#ifdef DEBUG_MODE
-    if (debugOut && (debugLevel >= BHY_DEBUG) && methodTrace)
-    {
-        debugOut->println("/updateBuffer()");
-    }
-#endif
 
     checkNextEvent();
 
@@ -749,15 +524,6 @@ int8_t BHYSensor::updateBuffer()
 uint8_t BHYSensor::checkForData()
 {
     bytesWaiting = readShort(BHY_REG_BYTES_REMAINING_ADDR);
-
-#ifdef DEBUG_MODE
-    if (debugOut && (debugLevel >= BHY_INFORMATIVE))
-    {
-        debugOut->print("\tBytes waiting in sensor FIFO: ");
-        debugOut->println(bytesWaiting);
-    }
-#endif
-
     return status;
 }
 
@@ -925,17 +691,7 @@ bhyDataType BHYSensor::getDataType(uint8_t sensorId)
 
 int8_t BHYSensor::checkNextEvent()
 {
-#ifdef DEBUG_MODE
-    if (debugOut && (debugLevel >= BHY_DEBUG))
-    {
-        debugOut->print("\tBuffer State: i= ");
-        debugOut->print(bufferStart);
-        debugOut->print(" ... ");
-        debugOut->print(bufferEnd);
-        debugOut->print("; using ");
-        debugOut->println(bufferUsed);
-    }
-#endif
+
 
     if (nextEventId != BHY_SID_NONE)
         return status;
@@ -944,22 +700,10 @@ int8_t BHYSensor::checkNextEvent()
     {
         if ((bufferStart == bufferEnd) && (bufferStart != 0))
         {
-#ifdef DEBUG_MODE
-            if (debugOut && (debugLevel >= BHY_DEBUG))
-            {
-                debugOut->println("\tBuffer emptied.");
-            }
-#endif
             bufferStart = bufferEnd = 0;
         }
         else if (bufferStart != bufferEnd)
         {
-#ifdef DEBUG_MODE
-            if (debugOut && (debugLevel >= BHY_ERROR))
-            {
-                debugOut->println("Buffer tracking error.");
-            }
-#endif
             bufferStart = bufferEnd = 0;
         }
 
@@ -968,15 +712,6 @@ int8_t BHYSensor::checkNextEvent()
 
     if (bufferUsed <= 0)
     {
-#ifdef DEBUG_MODE
-        if (debugOut && (debugLevel >= BHY_ERROR))
-        {
-            debugOut->print("Buffer error, capacity used: ");
-            debugOut->print(bufferUsed);
-            debugOut->println("; Reseting...");
-        }
-#endif
-
         clearNextEvent();
 
         bufferStart = bufferEnd = 0;
@@ -987,7 +722,7 @@ int8_t BHYSensor::checkNextEvent()
 
     uint8_t newEventId = buffer[bufferStart];
     bhyDataType newEventDataType;
-    //Int16_t _newEventDataSize; kappa
+    //Int16_t _newEventDataSize;
     bhyVirtualSensor newEventSensorId = BHY_VS_INVALID;
     bool newEventIsWakeup = false;
 
@@ -998,35 +733,14 @@ int8_t BHYSensor::checkNextEvent()
         clearNextEvent();
         nextEventId = newEventId;
         nextEventDataSize = -1;
-
-#ifdef DEBUG_MODE
-        if (debugOut && (debugLevel >= BHY_ERROR))
-        {
-            debugOut->print("Next event has invalid ID: ");
-            debugOut->println(newEventId);
-        }
-#endif
     }
     else if (bufferUsed < frameSizes[newEventDataType])
     {
         clearNextEvent();
 
-#ifdef DEBUG_MODE
-        if (debugOut && (debugLevel >= BHY_DEBUG))
-        {
-            debugOut->print("\tBuffer contains incomplete entry of type: ");
-            debugOut->println(newEventId);
-        }
-#endif
     }
     else
     {
-#ifdef DEBUG_MODE
-        if (debugOut && (debugLevel >= BHY_INTERNAL))
-        {
-            debugOut->print("\tNext buffer entry valid.");
-        }
-#endif
 
         if (newEventId >= BHY_SID_ACCELEROMETER && newEventId < BHY_SID_WAKEUP_OFFSET)
         {
@@ -1161,14 +875,6 @@ void BHYSensor::skipBytes(uint8_t number)
 {
     uint8_t toSkip = (number < bufferUsed) ? number : bufferUsed;
 
-#ifdef DEBUG_MODE
-    if (debugOut && (debugLevel >= BHY_DEBUG))
-    {
-        debugOut->print("Skipping ");
-        debugOut->print(toSkip);
-        debugOut->println(" bytes.");
-    }
-#endif
 
     bufferUsed -= toSkip;
     bufferStart += toSkip;
@@ -1189,14 +895,6 @@ void BHYSensor::skipBytesUntil(uint8_t value)
         ++skipped;
     }
 
-#ifdef DEBUG_MODE
-    if (debugOut && (debugLevel >= BHY_DEBUG))
-    {
-        debugOut->print("Skipped ");
-        debugOut->print(skipped);
-        debugOut->println(" bytes.");
-    }
-#endif
 
     clearNextEvent();
 
@@ -1207,14 +905,6 @@ void BHYSensor::moveBufferCursorBack(uint8_t number)
 {
     uint8_t toMove = (bufferUsed + number < BHY_FIFO_BUFFER_SIZE) ? number : BHY_FIFO_BUFFER_MAX - bufferUsed;
 
-#ifdef DEBUG_MODE
-    if (debugOut && (debugLevel >= BHY_DEBUG))
-    {
-        debugOut->print("Retracting ");
-        debugOut->print(toMove);
-        debugOut->println(" bytes.");
-    }
-#endif
 
     bufferUsed += toMove;
     bufferStart -= toMove;
@@ -1342,10 +1032,6 @@ void BHYSensor::parseBuffer(void)
 
 void BHYSensor::parseBufferU8(void)
 {
-#ifdef DEBUG_MODE
-    if (eventDump)
-        dumpBuffer(nextEventId, nextEventDataSize);
-#endif
 
     uint8_t data = buffer[bufferStart++];
 
@@ -1359,10 +1045,6 @@ void BHYSensor::parseBufferU8(void)
 
 void BHYSensor::parseBufferU16(void)
 {
-#ifdef DEBUG_MODE
-    if (eventDump)
-        dumpBuffer(nextEventId, nextEventDataSize);
-#endif
 
     uint16_t data = buffer[bufferStart++];
     data |= buffer[bufferStart++] << 8;
@@ -1390,10 +1072,6 @@ void BHYSensor::parseBufferU16(void)
 
 void BHYSensor::parseBufferScaledFloat(void)
 {
-#ifdef DEBUG_MODE
-    if (eventDump)
-        dumpBuffer(nextEventId, nextEventDataSize);
-#endif
 
     uint16_t raw;
     raw = buffer[bufferStart++];
@@ -1429,10 +1107,6 @@ void BHYSensor::parseBufferScaledFloat(void)
 
 void BHYSensor::parseBufferU24(void)
 {
-#ifdef DEBUG_MODE
-    if (eventDump)
-        dumpBuffer(nextEventId, nextEventDataSize);
-#endif
 
     uint32_t data;
 
@@ -1454,11 +1128,6 @@ void BHYSensor::parseBufferVector(void)
 {
     uint16_t temp;
     bhyVector data;
-
-#ifdef DEBUG_MODE
-    if (eventDump)
-        dumpBuffer(nextEventId, nextEventDataSize);
-#endif
 
     temp = buffer[bufferStart++];
     temp |= buffer[bufferStart++] << 8;
@@ -1509,11 +1178,6 @@ void BHYSensor::parseBufferVector(void)
 
 void BHYSensor::parseBuffer(bhyVectorUncalib *data)
 {
-#ifdef DEBUG_MODE
-    if (eventDump)
-        dumpBuffer(nextEventId, nextEventDataSize);
-#endif
-
     uint16_t temp;
 
     temp = buffer[bufferStart++];
@@ -1554,12 +1218,6 @@ void BHYSensor::parseBufferQuaternion(void)
 {
     uint16_t temp;
     bhyQuaternion data;
-
-#ifdef DEBUG_MODE
-    if (eventDump)
-        dumpBuffer(nextEventId, nextEventDataSize);
-#endif
-
     temp = buffer[bufferStart++];
     temp |= buffer[bufferStart++] << 8;
     data.x = (int16_t)temp;
@@ -1596,10 +1254,6 @@ void BHYSensor::parseBufferQuaternion(void)
 
 void BHYSensor::parseBufferMetaevent(void)
 {
-#ifdef DEBUG_MODE
-    if (eventDump)
-        dumpBuffer(nextEventId, nextEventDataSize);
-#endif
     bhyMetaEvent data;
     data.id = nextEventId;
     data.type = (bhyMetaEventType)buffer[bufferStart++];
@@ -1637,11 +1291,6 @@ void BHYSensor::parseBufferDebugEvent()
 
 void BHYSensor::parseBuffer(bhyBSX *data)
 {
-#ifdef DEBUG_MODE
-    if (eventDump)
-        dumpBuffer(nextEventId, nextEventDataSize);
-#endif
-
     uint32_t temp32;
 
     temp32 = buffer[bufferStart++];
@@ -1673,10 +1322,6 @@ void BHYSensor::parseBuffer(bhyBSX *data)
 
 void BHYSensor::parseBufferActivity(void)
 {
-#ifdef DEBUG_MODE
-    if (eventDump)
-        dumpBuffer(nextEventId, nextEventDataSize);
-#endif
 
     bhyActivityEvent actEvent;
 
@@ -2099,11 +1744,9 @@ int8_t BHYSensor::pageSelect(bhyPage page, uint8_t parameter)
         else if (ack == 0x80)
         {
 
-            //delay(50); KAPPA
             status = BHY_ERROR;
         }
         else{}
-           // delay(1);// device is not ready yet KAPPA
     }
     if (status < 0)
         return status;
@@ -2270,7 +1913,7 @@ int8_t BHYSensor::setFifoWatermark(bool wakeup, uint16_t bytes)
 
 int8_t BHYSensor::getSensorStatusBank(uint8_t parameter, uint8_t sensor_type)
 {
-    //uint8_t data = 0; KAPPA
+    //uint8_t data = 0;
 
     status = readParameterPage(BHY_SYSTEM_PAGE, parameter);
 
@@ -2329,57 +1972,19 @@ int8_t BHYSensor::setSoftPassThrough(bhySoftPassThrough *data, uint8_t parameter
 
 int8_t BHYSensor::read(uint8_t regAddr, uint8_t *data, uint16_t length)
 {
-    if (length > ARDUINO_I2C_BUFFER_SIZE)
-    {
-/*#ifdef DEBUG_MODE
-        if (debugOut && (debugLevel >= BHY_ERROR))
-        {
-            debugOut->print("Unable to read ");
-            debugOut->print(length);
-            debugOut->print("bytes from device 0x");
-            debugOut->print(deviceId, HEX);
-            debugOut->print(" register 0x");
-            if (regAddr < 16)
-                debugOut->print("0");
-            debugOut->print(regAddr, HEX);
-            debugOut->print(" [max read length is ");
-            debugOut->print(ARDUINO_I2C_BUFFER_SIZE);
-            debugOut->println("]");
-        }
-#endif*/
-
-        return -1;
-    }
-
-/*#ifdef DEBUG_MODE
-    if (debugOut && (debugLevel >= BHY_DEBUG) && commDump)
-    {
-        debugOut->print("Reading from\t0x");
-        debugOut->print(deviceId, HEX);
-        debugOut->print("\tregister 0x");
-        if (regAddr < 16)
-            debugOut->print("0");
-        debugOut->println(regAddr, HEX);
-    }
-#endif*/
 
     // Begin I2C communication with provided I2C address
-    //i2c.beginTransmission(deviceId); KAPPA
+    //i2c.beginTransmission(deviceId);
 
     // The following code switches out Wire library code for the older
     // implementation if using the older version of the library.
     // In either case, the register address to be read is sent to
     // the sensor.
-#if ARDUINO >= 100
-    Wire.write(regAddr); // This is for the modern Wire library
-#else
-    //Wire.send(regAddr);         // This is for the older Wire library KAPPA
-    i2c.write(deviceId,regAddr);
-#endif
+    //i2c.write(deviceId,regAddr);
 
     // Done writting, end the transmission
-    //int8_t returned = Wire.endTransmission(); kappa
-    int8_t returned = i2c.read(deviceId, regAddr);
+    //int8_t returned = Wire.endTransmission();
+    int8_t returned = i2c.read((uint8_t )(((uint8_t)deviceId<<0) | (uint8_t )0), regAddr);
     /*
        0:success
        1:data too long to fit in transmit buffer
@@ -2390,77 +1995,23 @@ int8_t BHYSensor::read(uint8_t regAddr, uint8_t *data, uint16_t length)
 
     if (returned)
     {
-#ifdef DEBUG_MODE
-        if (debugOut && (debugLevel >= BHY_ERROR))
-        {
-            debugOut->print("Communication error: ");
-            switch (returned)
-            {
-            case 1:
-                debugOut->println("Data too long to fit in transmit buffer.");
-                break;
-            case 2:
-                debugOut->println("received NACK on transmit of address.");
-                break;
-            case 3:
-                debugOut->println("received NACK on transmit of data.");
-                break;
-            case 4:
-                debugOut->println("Unspecified error.");
-                break;
-            default:
-                debugOut->print("Unexpected Wire.endTransmission() return code: ");
-                debugOut->println(returned);
-            }
-        }
-#endif
-
         return returned;
     }
 
     // Requests the required number of bytes from the sensor
-    //Wire.requestFrom((int)deviceId, (int)length); KAPPA
+    //Wire.requestFrom((int)deviceId, (int)length);
     //uint16_t toRead = length;
     //Wire.requestFrom((int) deviceId, (int) ((toRead > ARDUINO_I2C_BUFFER_SIZE) ? ARDUINO_I2C_BUFFER_SIZE: toRead));
 
     uint16_t i;
     // Reads the requested number of bytes into the provided array
-    for (i = 0; (i < length); i++) //&& Wire.available(); i++) KAPPA
+    for (i = 0; (i < length); i++) //&& Wire.available(); i++)
     {
-/*#if ARDUINO >= 100
-        data[i] = Wire.read(); // This is for the modern Wire library KAPPA
-#else
-        data[i] = Wire.receive();         // This is for the older Wire library
-#endif*/
-        data[i] = i2c.read(deviceId,regAddr);
-#ifdef DEBUG_MODE
-        if (debugOut && (debugLevel >= BHY_DEBUG) && commDump)
-        {
-            debugOut->print("\t0x");
-            if (data[i] < 16)
-                debugOut->print("0");
-            debugOut->print(data[i], HEX);
-            if (i == length - 1)
-                debugOut->println("");
-            else if (i % 8 == 7)
-                debugOut->println(",");
-            else
-                debugOut->print(",");
-        }
-#endif
+        data[i] = i2c.read((uint8_t) (((uint8_t) deviceId << 1) | (uint8_t) 1), regAddr);
     }
 
     if (i < length)
     {
-#ifdef DEBUG_MODE
-        if (debugOut && (debugLevel >= BHY_ERROR))
-        {
-            debugOut->print("Communication error: Failed to read ");
-            debugOut->print(length - i);
-            debugOut->println(" bytes.");
-        }
-#endif
-
         return -2;
     }
 
@@ -2472,40 +2023,11 @@ int8_t BHYSensor::write(uint8_t regAddr, uint8_t *data, uint16_t length)
 {
     if (length >= ARDUINO_I2C_BUFFER_SIZE)
     {
-#ifdef DEBUG_MODE
-        if (debugOut && (debugLevel >= BHY_ERROR))
-        {
-            debugOut->print("Unable to write ");
-            debugOut->print(length);
-            debugOut->print("bytes to device 0x");
-            debugOut->print(deviceId, HEX);
-            debugOut->print(" register 0x");
-            if (regAddr < 16)
-                debugOut->print("0");
-            debugOut->print(regAddr, HEX);
-            debugOut->print(" [max write length is ");
-            debugOut->print(ARDUINO_I2C_BUFFER_SIZE - 1);
-            debugOut->println("]");
-        }
-#endif
-
         return -1;
     }
 
-#ifdef DEBUG_MODE
-    if (debugOut && (debugLevel >= BHY_DEBUG) && commDump)
-    {
-        debugOut->print("Writing to\t0x");
-        debugOut->print(deviceId, HEX);
-        debugOut->print("\tregister 0x");
-        if (regAddr < 16)
-            debugOut->print("0");
-        debugOut->println(regAddr, HEX);
-    }
-#endif //DEBUG_MODE
-
     // Begin I2C communication with provided I2C address
-    //Wire.beginTransmission(deviceId); KAPPA
+    //Wire.beginTransmission(deviceId);
 
     // The following code switches out Wire library code for the older
     // implementation if using the older version of the library.
@@ -2516,65 +2038,18 @@ int8_t BHYSensor::write(uint8_t regAddr, uint8_t *data, uint16_t length)
 #else
     Wire.send(regAddr);         // This is for the older Wire library
 #endif*/
-    i2c.read(deviceId, regAddr);
 
     uint16_t i;
     // Writes the requested number of bytes from the provided array
     for (i = 0; i < length; i++)
     {
-
-#ifdef DEBUG_MODE
-        if (debugOut && (debugLevel >= BHY_DEBUG) && commDump)
-        {
-            debugOut->print("\t0x");
-            if (data[i] < 16)
-                debugOut->print("0");
-            debugOut->print(data[i], HEX);
-            if (i == length - 1)
-                debugOut->println("");
-            else if (i % 8 == 7)
-                debugOut->println(",");
-            else
-                debugOut->print(",");
-        }
-#endif
-
-/*#if ARDUINO >= 100
-        Wire.write(data[i]); // This is for the modern Wire library
-#else
-        Wire.send(data[i]);         // This is for the older Wire library
-#endif*/ //KAPPA
-    i2c.write(deviceId,regAddr,data[i]);
+    i2c.write((uint8_t) (((uint8_t) deviceId << 0) | (uint8_t) 0), regAddr,data[i]);
     }
 
     // Done writting, end the transmission
-    //int8_t returned = Wire.endTransmission(); KAPPA
-    uint8_t returned = i2c.read(deviceId,regAddr);
+    //int8_t returned = Wire.endTransmission();
+    uint8_t returned = i2c.read((uint8_t) (((uint8_t) deviceId << 1) | (uint8_t) 1), regAddr);
 
-#ifdef DEBUG_MODE
-    if (returned && debugOut && (debugLevel >= BHY_ERROR))
-    {
-        debugOut->print("Communication error: ");
-        switch (returned)
-        {
-        case 1:
-            debugOut->println("Data too long to fit in transmit buffer.");
-            break;
-        case 2:
-            debugOut->println("received NACK on transmit of address.");
-            break;
-        case 3:
-            debugOut->println("received NACK on transmit of data.");
-            break;
-        case 4:
-            debugOut->println("Unspecified error.");
-            break;
-        default:
-            debugOut->print("Unexpected Wire.endTransmission() return code: ");
-            debugOut->println(returned);
-        }
-    }
-#endif
 
     // This must return 0 on sucess, any other value will be interpretted as a communication failure.
     return returned;
@@ -2609,22 +2084,6 @@ uint16_t BHYSensor::readShort(uint8_t regAddr)
         return 0;
 
     uint16_t result = ((uint16_t)data[1] << 8) | data[0];
-
-#ifdef DEBUG_MODE
-    if (debugOut && (debugLevel >= BHY_INFORMATIVE) && commDump)
-    {
-        debugOut->print("Result:\t0x");
-        if (result < 0x1000)
-            debugOut->print("0");
-        if (result < 0x100)
-            debugOut->print("0");
-        if (result < 0x10)
-            debugOut->print("0");
-        debugOut->print(result, HEX);
-        debugOut->println("");
-    }
-#endif
-
     return result;
 }
 
@@ -2640,30 +2099,6 @@ uint32_t BHYSensor::readInteger(uint8_t regAddr)
     uint32_t result =
         (uint32_t)(((uint32_t)data[3] << 24) | ((uint32_t)data[2] << 16) | ((uint32_t)data[1] << 8) |
                    ((uint32_t)data[0]));
-
-#ifdef DEBUG_MODE
-    if (debugOut && (debugLevel >= BHY_INFORMATIVE) && commDump)
-    {
-        debugOut->print("Result:\t0x");
-        if (result < 0x10000000)
-            debugOut->print("0");
-        if (result < 0x1000000)
-            debugOut->print("0");
-        if (result < 0x100000)
-            debugOut->print("0");
-        if (result < 0x10000)
-            debugOut->print("0");
-        if (result < 0x1000)
-            debugOut->print("0");
-        if (result < 0x100)
-            debugOut->print("0");
-        if (result < 0x10)
-            debugOut->print("0");
-        debugOut->print(result, HEX);
-        debugOut->println("");
-    }
-#endif
-
     return result;
 }
 

@@ -77,9 +77,6 @@ int8_t status;
 I2C &i2c;
 
 BHYSensor(I2C& i2c);
-    /*BHYSensor(I2C& i2c) : i2c(i2c) {
-
-    }*/
 
 int8_t begin(uint8_t i2cAddress = BHY_I2C_ADDR);//TwoWire &wire = Wire);
 static std::string getErrorString(int8_t status);
@@ -174,9 +171,6 @@ int8_t getChipStatus(bhyChipStatus *chipStatus);
 int8_t getPhysicalSensorStatus(bhyPhysicalStatus *accel, bhyPhysicalStatus *gyro, bhyPhysicalStatus *mag);
 
 protected:
-//TwoWire* i2c; KAPPA
-
-
 bhySensorStatusBank sensorStatusBank{};
 
 uint8_t buffer[BHY_FIFO_BUFFER_SIZE]{};

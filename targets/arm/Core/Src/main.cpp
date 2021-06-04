@@ -43,7 +43,6 @@ int Main(){
     }
     bme280.set_enable(true);
 
-    // icm20948
     // Reset ICM20948
     myIMU.writeByte(ICM20948_ADDRESS, PWR_MGMT_1, READ_FLAG);
     HAL_Delay(100);
@@ -55,22 +54,21 @@ int Main(){
     auto ICM = myIMU.readByte(ICM20948_ADDRESS, WHO_AM_I_ICM20948);
     auto length2 = sprintf(reinterpret_cast<char *>(data_buffer), "ICM id : %02X \n ", ICM);
     HAL_UART_Transmit(&huart1, data_buffer, length2,10);
-    //auto some_buff = i2c.read((uint8_t )(((uint8_t)ICM20948_ADDRESS<<1) | (uint8_t )1), WHO_AM_I_ICM20948);
 
 
-    // Start by performing self test and reporting values
+    // Performing self test
     myIMU.ICM20948SelfTest(myIMU.selfTest);
     auto print = sprintf(reinterpret_cast<char *>(data_buffer), "x-axis self test: acc trim within : ");
     HAL_UART_Transmit(&huart1, data_buffer, print,10);
-    print =sprintf(reinterpret_cast<char *>(data_buffer), "%02f of factory value\n",(myIMU.selfTest[0]));
+    print =sprintf(reinterpret_cast<char *>(data_buffer), "%.2f of factory value\n",(myIMU.selfTest[0]));
     HAL_UART_Transmit(&huart1, data_buffer, print,10);
     print = sprintf(reinterpret_cast<char *>(data_buffer), "y-axis self test: acc trim within : ");
     HAL_UART_Transmit(&huart1, data_buffer, print,10);
-    print = sprintf(reinterpret_cast<char *>(data_buffer), "%02f of factory value\n",(myIMU.selfTest[1]));
+    print = sprintf(reinterpret_cast<char *>(data_buffer), "%.2f of factory value\n",(myIMU.selfTest[1]));
     HAL_UART_Transmit(&huart1, data_buffer, print,10);
     print =  sprintf(reinterpret_cast<char *>(data_buffer), "z-axis self test: acc trim within : ");
     HAL_UART_Transmit(&huart1, data_buffer, print,10);
-    print = sprintf(reinterpret_cast<char *>(data_buffer), "%02f of factory value\n",(myIMU.selfTest[2]));
+    print = sprintf(reinterpret_cast<char *>(data_buffer), "%.2f of factory value\n",(myIMU.selfTest[2]));
     HAL_UART_Transmit(&huart1, data_buffer, print,10);
 
     // Calibrate gyro and accelerometers, load biases in bias registers
@@ -90,6 +88,25 @@ int Main(){
 
 
     //end ak09916
+
+
+    // BHI 160 status
+    bhi160.begin(0b0101000);
+    if (bhi160.status == BHY_OK) {
+        print = sprintf(reinterpret_cast<char *>(data_buffer), "BHI160 OK\n");
+        HAL_UART_Transmit(&huart1, data_buffer, print, 10);
+    }
+    if (bhi160.status < BHY_OK) //All error codes are negative
+    {
+        print = sprintf(reinterpret_cast<char *>(data_buffer), "BHI160 NOT OK : %s\n", bhi160.getErrorString(bhi160.status).c_str());
+        HAL_UART_Transmit(&huart1, data_buffer, print, 10);
+    }
+    else //All warning codes are positive
+    {
+        print = sprintf(reinterpret_cast<char *>(data_buffer), "BHI160 Warr:  + %s\n", bhi160.getErrorString(bhi160.status).c_str());
+        HAL_UART_Transmit(&huart1, data_buffer, print, 10);
+    }
+    bhi160.run();
     while(true){
         LED1.toggle();
         HAL_Delay(100);
@@ -103,9 +120,9 @@ int Main(){
 
 
         myIMU.readAccelData(myIMU.accelCount);
-        myIMU.ax = (float)myIMU.accelCount[0] * myIMU.aRes; // - myIMU.accelBias[0];
-        myIMU.ay = (float)myIMU.accelCount[1] * myIMU.aRes; // - myIMU.accelBias[1];
-        myIMU.az = (float)myIMU.accelCount[2] * myIMU.aRes; // - myIMU.accelBias[2];
+        myIMU.ax = (float)myIMU.accelCount[0] * myIMU.aRes;
+        myIMU.ay = (float)myIMU.accelCount[1] * myIMU.aRes;
+        myIMU.az = (float)myIMU.accelCount[2] * myIMU.aRes;
         auto lengthAccel = sprintf(reinterpret_cast<char *>(data_buffer), "acceleration values: \n");
         HAL_UART_Transmit(&huart1, data_buffer, lengthAccel,10);
         lengthAccel = sprintf(reinterpret_cast<char *>(data_buffer), "%f\n", myIMU.ax);
@@ -115,32 +132,25 @@ int Main(){
         lengthAccel = sprintf(reinterpret_cast<char *>(data_buffer), "%f\n", myIMU.az);
         HAL_UART_Transmit(&huart1, data_buffer, lengthAccel,10);
 
+        myIMU.readGyroData(myIMU.gyroCount);
+        myIMU.gx = (float)myIMU.gyroCount[0] * myIMU.gRes;
+        myIMU.gy = (float)myIMU.gyroCount[1] * myIMU.gRes;
+        myIMU.gz = (float)myIMU.gyroCount[2] * myIMU.gRes;
 
 
         myIMU.tempCount = myIMU.readTempData();
         myIMU.temperature = ((float) myIMU.tempCount) / 333.87 + 21.0;
-        print = sprintf(reinterpret_cast<char *>(data_buffer), "Temp: %.2f\n",myIMU.temperature);
+        print = sprintf(reinterpret_cast<char *>(data_buffer), "Temperatura ICM: %.2f\n",myIMU.temperature);
         HAL_UART_Transmit(&huart1, data_buffer, print,10);
 
         //end icm meas
 
 
-        // for BHI 160 - nvm
-        /*if (bhi160.status == BHY_OK)
-            return true;
+        //test
 
-        if (bhi160.status < BHY_OK) All error codes are negative
-        {
-            Serial.println("Error code: (" + String(bhi160.status) + "). " + bhi160.getErrorString(bhi160.status));
+        //end test
 
-            return false;  Something has gone wrong
-        }
-        else All warning codes are positive
-        {
-            Serial.println("Warning code: (" + String(bhi160.status) + ").");
 
-            return true;
-        }*/
     }
     return 0;
 }
