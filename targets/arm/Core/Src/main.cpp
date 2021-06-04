@@ -76,6 +76,9 @@ int Main(){
     // Calibrate gyro and accelerometers, load biases in bias registers
     myIMU.calibrateICM20948(myIMU.gyroBias, myIMU.accelBias);
     myIMU.initICM20948();
+    myIMU.getAres();
+    myIMU.getGres();
+    myIMU.getMres();
 
 
     // end icm20948
