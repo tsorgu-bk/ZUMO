@@ -60,6 +60,10 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define WS2812B_Pin GPIO_PIN_5
 #define WS2812B_GPIO_Port GPIOA
+#define ECHO_Pin GPIO_PIN_10
+#define ECHO_GPIO_Port GPIOB
+#define TRIG_Pin GPIO_PIN_11
+#define TRIG_GPIO_Port GPIOB
 #define LED2_Pin GPIO_PIN_8
 #define LED2_GPIO_Port GPIOA
 #define LED1_Pin GPIO_PIN_11

@@ -20,6 +20,9 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
+
+#include <string.h>
+#include <stdio.h>
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -36,12 +39,14 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+#define usTIM TIM5
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
-I2C_HandleTypeDef hi2c2;
+
+TIM_HandleTypeDef htim2;
+TIM_HandleTypeDef htim5;
 
 UART_HandleTypeDef huart1;
 
@@ -54,14 +59,22 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_USART1_UART_Init(void);
-static void MX_I2C2_Init(void);
+static void MX_TIM2_Init(void);
+static void MX_TIM5_Init(void);
 /* USER CODE BEGIN PFP */
-
+void usDelay(uint32_t uSec);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+uint8_t icFlag = 0;
+uint8_t captureIdx=0;
+uint32_t edge1Time=0, edge2Time=0;
 
+const float speedOfSound = 0.0343/2;
+float distance;
+
+char uartBuf[100];
 /* USER CODE END 0 */
 
 /**
@@ -71,7 +84,7 @@ static void MX_I2C2_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+    uint32_t numTicks = 0;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -94,10 +107,11 @@ int main(void)
   MX_GPIO_Init();
   MX_I2C1_Init();
   MX_USART1_UART_Init();
-  MX_I2C2_Init();
+  MX_TIM2_Init();
+  MX_TIM5_Init();
   /* USER CODE BEGIN 2 */
-  int Main();
-  Main();
+  //int Main();
+  //Main();
 
   /* USER CODE END 2 */
 
@@ -105,9 +119,66 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+      sprintf(uartBuf, "Start\n");
+      HAL_UART_Transmit(&huart1, (uint8_t *)uartBuf, strlen(uartBuf), 100);
+      HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
     /* USER CODE END WHILE */
+//Set TRIG to LOW for few uSec
+      HAL_GPIO_WritePin(TRIG_GPIO_Port, TRIG_Pin, GPIO_PIN_RESET);
+      if (HAL_GPIO_ReadPin(TRIG_GPIO_Port, TRIG_Pin) == GPIO_PIN_RESET) {
+          sprintf(uartBuf, "ok\n");
+          HAL_UART_Transmit(&huart1, (uint8_t *) uartBuf, strlen(uartBuf), 100);
+      }
+      else{
+          sprintf(uartBuf, "Nieok\n");
+          HAL_UART_Transmit(&huart1, (uint8_t *) uartBuf, strlen(uartBuf), 100);
+      }
+      usDelay(3);
 
+      //*** START Ultrasonic measure routine ***//
+      //1. Output 10 usec TRIG
+      HAL_GPIO_WritePin(TRIG_GPIO_Port, TRIG_Pin, GPIO_PIN_SET);
+      if (HAL_GPIO_ReadPin(TRIG_GPIO_Port, TRIG_Pin) == GPIO_PIN_SET) {
+          sprintf(uartBuf, "ok\n");
+          HAL_UART_Transmit(&huart1, (uint8_t *) uartBuf, strlen(uartBuf), 100);
+      }
+      else{
+          sprintf(uartBuf, "Nieok\n");
+          HAL_UART_Transmit(&huart1, (uint8_t *) uartBuf, strlen(uartBuf), 100);
+      }
+      usDelay(10);
+      HAL_GPIO_WritePin(TRIG_GPIO_Port, TRIG_Pin, GPIO_PIN_RESET);
+      if (HAL_GPIO_ReadPin(TRIG_GPIO_Port, TRIG_Pin) == GPIO_PIN_RESET) {
+          sprintf(uartBuf, "ok\n");
+          HAL_UART_Transmit(&huart1, (uint8_t *) uartBuf, strlen(uartBuf), 100);
+      }
+      else{
+          sprintf(uartBuf, "Nieok\n");
+          HAL_UART_Transmit(&huart1, (uint8_t *) uartBuf, strlen(uartBuf), 100);
+      }
+      //2. Wait for ECHO pin rising edge
+      while(HAL_GPIO_ReadPin(ECHO_GPIO_Port, ECHO_Pin) == GPIO_PIN_RESET);
+
+      //3. Start measuring ECHO pulse width in usec
+      numTicks = 0;
+      while(HAL_GPIO_ReadPin(ECHO_GPIO_Port, ECHO_Pin) == GPIO_PIN_SET)
+      {
+          numTicks++;
+          usDelay(3); //2.8usec
+          /*sprintf(uartBuf, "Ticks %lu\r\n", numTicks);
+          HAL_UART_Transmit(&huart1, (uint8_t *)uartBuf, strlen(uartBuf), 100);*/
+      };
+
+      //4. Estimate distance in cm
+      distance = (numTicks + 0.0f)*2.8*speedOfSound;
+
+      //5. Print to UART terminal for debugging
+      sprintf(uartBuf, "Distance (cm)  = %.1f\r\n", distance);
+      HAL_UART_Transmit(&huart1, (uint8_t *)uartBuf, strlen(uartBuf), 100);
+
+      HAL_Delay(1000);
     /* USER CODE BEGIN 3 */
+
   }
   /* USER CODE END 3 */
 }
@@ -134,7 +205,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL.PLLM = 8;
-  RCC_OscInitStruct.PLL.PLLN = 168;
+  RCC_OscInitStruct.PLL.PLLN = 84;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 4;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
@@ -147,10 +218,10 @@ void SystemClock_Config(void)
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
     Error_Handler();
   }
@@ -191,36 +262,92 @@ static void MX_I2C1_Init(void)
 }
 
 /**
-  * @brief I2C2 Initialization Function
+  * @brief TIM2 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_I2C2_Init(void)
+static void MX_TIM2_Init(void)
 {
 
-  /* USER CODE BEGIN I2C2_Init 0 */
+  /* USER CODE BEGIN TIM2_Init 0 */
 
-  /* USER CODE END I2C2_Init 0 */
+  /* USER CODE END TIM2_Init 0 */
 
-  /* USER CODE BEGIN I2C2_Init 1 */
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
 
-  /* USER CODE END I2C2_Init 1 */
-  hi2c2.Instance = I2C2;
-  hi2c2.Init.ClockSpeed = 100000;
-  hi2c2.Init.DutyCycle = I2C_DUTYCYCLE_2;
-  hi2c2.Init.OwnAddress1 = 0;
-  hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c2.Init.OwnAddress2 = 0;
-  hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&hi2c2) != HAL_OK)
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 84-1;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 1000000-1;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN I2C2_Init 2 */
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
 
-  /* USER CODE END I2C2_Init 2 */
+  /* USER CODE END TIM2_Init 2 */
+
+}
+
+/**
+  * @brief TIM5 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM5_Init(void)
+{
+
+  /* USER CODE BEGIN TIM5_Init 0 */
+
+  /* USER CODE END TIM5_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM5_Init 1 */
+
+  /* USER CODE END TIM5_Init 1 */
+  htim5.Instance = TIM5;
+  htim5.Init.Prescaler = 84-1;
+  htim5.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim5.Init.Period = 0;
+  htim5.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim5.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim5) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim5, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim5, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM5_Init 2 */
+
+  /* USER CODE END TIM5_Init 2 */
 
 }
 
@@ -275,6 +402,9 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, WS2812B_Pin|LED2_Pin|LED1_Pin, GPIO_PIN_RESET);
 
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(TRIG_GPIO_Port, TRIG_Pin, GPIO_PIN_RESET);
+
   /*Configure GPIO pin : WS2812B_Pin */
   GPIO_InitStruct.Pin = WS2812B_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -288,6 +418,19 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : ECHO_Pin */
+  GPIO_InitStruct.Pin = ECHO_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(ECHO_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : TRIG_Pin */
+  GPIO_InitStruct.Pin = TRIG_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(TRIG_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pins : LED2_Pin LED1_Pin */
   GPIO_InitStruct.Pin = LED2_Pin|LED1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -298,6 +441,35 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void usDelay(uint32_t uSec)
+{
+    if(uSec < 2) uSec = 2;
+    usTIM->ARR = uSec - 1; 	/*sets the value in the auto-reload register*/
+    usTIM->EGR = 1; 			/*Re-initialises the timer*/
+    usTIM->SR &= ~1; 		//Resets the flag
+    usTIM->CR1 |= 1; 		//Enables the counter
+    while((usTIM->SR&0x0001) != 1);
+    usTIM->SR &= ~(0x0001);
+}
+
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+{
+
+    HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
+
+    if(captureIdx == 0) //Fisrt edge
+    {
+        edge1Time = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_4); //__HAL_TIM_GetCounter(&htim3);//
+
+        captureIdx = 1;
+    }
+    else if(captureIdx == 1) //Second edge
+    {
+        edge2Time = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_4);
+        captureIdx = 0;
+        icFlag = 1;
+    }
+}
 
 /* USER CODE END 4 */
 
