@@ -10,8 +10,6 @@
 #include "stdio.h"
 #include <ICM20948.h>
 
-
-
 GPIO_STM32F4x LED1(LED1_GPIO_Port,LED1_Pin);
 GPIO_STM32F4x LED2(LED2_GPIO_Port,LED2_Pin);
 
@@ -23,8 +21,7 @@ BME280 bme280( i2c, 0b1110110);
 BHYSensor bhi160(i2c);
 ICM20948 myIMU(i2c);
 extern UART_HandleTypeDef huart1;
-const float speedOfSound = 0.0343/2;
-//float distance;
+
 uint8_t data_buffer[40]= {0};
 //UART_STM32F4x usart;
 extern "C"
@@ -32,6 +29,7 @@ extern "C"
 
 
 // test
+
 
 // test
 int Main(){
@@ -118,7 +116,6 @@ int Main(){
         auto length = sprintf(reinterpret_cast<char *>(data_buffer), "Temperature: %.2f , Pressure: %lu \n ", bme280.get_last_temperature(), bme280.get_last_pressure());
         HAL_UART_Transmit(&huart1, data_buffer, length,10);
 
-
         //icm measurments
 
 
@@ -141,7 +138,7 @@ int Main(){
         myIMU.gz = (float)myIMU.gyroCount[2] * myIMU.gRes;
 
 
-        // tempCount = myIMU.readTempData();
+        myIMU.tempCount = myIMU.readTempData();
         myIMU.temperature = ((float) myIMU.tempCount) / 333.87 + 21.0;
         print = sprintf(reinterpret_cast<char *>(data_buffer), "Temperatura ICM: %.2f\n",myIMU.temperature);
         HAL_UART_Transmit(&huart1, data_buffer, print,10);
