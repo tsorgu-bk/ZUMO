@@ -52,7 +52,9 @@ extern "C" {
 
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
-
+void delay(uint16_t time);
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim);
+void HCSR04_Read (void);
 /* USER CODE BEGIN EFP */
 
 /* USER CODE END EFP */
